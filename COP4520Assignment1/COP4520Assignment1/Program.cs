@@ -12,11 +12,21 @@ namespace COP4520Assignment1
         public static void Main()
         {
             int n;
+            String input;
             Console.WriteLine("Please input N");
-            n = Int32.Parse(Console.ReadLine());
-            PrintResults(Sieve(n), 10.0);
+            input = Console.ReadLine();
+            if (input != null)
+            {
+                n = Int32.Parse(input);
+                PrintResults(Sieve(n), 10.0);
+            }
+            else
+            {
+                Console.WriteLine("Invalid input, restart the program");
+            }
         }
 
+        // Taken from the pseudo code at https://en.wikipedia.org/wiki/Sieve_of_Eratosthenes
         public static bool[] Sieve(int n)
         {
             bool[] list = new bool[n];
@@ -37,9 +47,15 @@ namespace COP4520Assignment1
             return list;
         }
 
+        //Overloaded so that the additional variables can be input at a later time
         public static void PrintResults(bool[] list, double time)
         {
-            int i, j, primeCount = 0, topPrimeCount = 0, primeSum = 0;
+            PrintResults(list, time, 0, 0, 0);
+        }
+        // Prints the results in the format requested
+        public static void PrintResults(bool[] list, double time, int primeCount, int topPrimeCount, int primeSum)
+        {
+            int i;
             ArrayList topPrimes = new ArrayList();
             for(i = 2; i < list.Length; i++)
             {
