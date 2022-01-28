@@ -18,7 +18,10 @@ namespace COP4520Assignment1
             if (input != null)
             {
                 n = Int32.Parse(input);
-                PrintResults(Sieve(n), 10.0);
+                DateTime start = DateTime.Now;
+                bool[] temp = Sieve(n);
+                TimeSpan diff = DateTime.Now - start;
+                PrintResults(temp, diff.TotalMilliseconds.ToString());
             }
             else
             {
@@ -48,12 +51,12 @@ namespace COP4520Assignment1
         }
 
         //Overloaded so that the additional variables can be input at a later time
-        public static void PrintResults(bool[] list, double time)
+        public static void PrintResults(bool[] list, String time)
         {
             PrintResults(list, time, 0, 0, 0);
         }
         // Prints the results in the format requested
-        public static void PrintResults(bool[] list, double time, int primeCount, int topPrimeCount, int primeSum)
+        public static void PrintResults(bool[] list, String time, int primeCount, int topPrimeCount, int primeSum)
         {
             int i;
             ArrayList topPrimes = new ArrayList();
@@ -65,11 +68,12 @@ namespace COP4520Assignment1
                     primeSum += i;
                     if(topPrimeCount < 10)
                     {
+                        topPrimeCount++;
                         topPrimes.Add(i);
                     }
                     else
                     {
-                        topPrimes.Remove(0);
+                        topPrimes.RemoveAt(0);
                         topPrimes.Add(i);
                     }
                 }
