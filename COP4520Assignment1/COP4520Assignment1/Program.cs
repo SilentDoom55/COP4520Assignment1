@@ -4,19 +4,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace COP4520Assignment1
 {
     internal class Program
     {
         private static int threadCount = 8;
-        public static ArrayList parPrimesTemp = new ArrayList();
-        public static ArrayList parallelPrimes = ArrayList.Synchronized(parPrimesTemp);
-        public static bool[] sieve;
-        private static readonly object sieveLock = new object();
-        public static long totalPrimes = 0;
-        public static long sumPrimes = 0;
-        public static Thread[] aThreads;
+        public static bool[] primesSeries;
+        public static bool[] primesPara;
         public static void Main()
         {
             int n;
@@ -26,20 +23,23 @@ namespace COP4520Assignment1
             if (input != null)
             {
                 n = Int32.Parse(input);
-                sieve = new bool[n];
-                //Console.WriteLine("\nParallel (8):");
-                //ParallelController(n);
-
-                //threadCount = 1;\
-                //parallelPrimes.Clear();
-                //Console.WriteLine("\nParallel (1):");
-                //ParallelController(n);
-
-                Console.WriteLine("\nSeries Sieve:");
-                SeriesSieveController(n);
-
-                Console.WriteLine("\nParallel Sieve: ");
-                AtkinController(n);
+                primesSeries = new bool[n];
+                primesPara = new bool[n];
+                for (int i = 0; i < n; i++)
+                {
+                    if(i % 2 == 0 && i != 2)
+                    {
+                        primesSeries[i] = false;
+                        primesPara[i] = false;
+                    }
+                    else
+                    {
+                        primesSeries[i] = true;
+                        primesPara[i] = true;
+                    }
+                }
+                BasicSieveController(n);
+                //\\Compare();
             }
             else
             {
@@ -47,243 +47,86 @@ namespace COP4520Assignment1
             }
         }
 
-        public static void ParallelController(int n)
+        public static void BasicSieveController(int n)
         {
-            DateTime parstart = DateTime.Now;
-            Parallel(n);
-            TimeSpan pardiff = DateTime.Now - parstart;
-            ParallelPrintResults(pardiff.TotalMilliseconds.ToString());
-        }
+            DateTime startSeries = DateTime.Now;
+            SeriesSieve(n);
+            TimeSpan diffSeries = DateTime.Now - startSeries;
+            BasicSeriesPrintResults(diffSeries.TotalMilliseconds.ToString());
 
-        public static void Parallel(int n)
-        {
             int start = 2;
             Thread[] threads = new Thread[threadCount];
             int range = (n - start) / threadCount;
+
+            int[] starts = new int[threadCount];
+            starts[0] = start;
+            int[] ends = new int[threadCount];
+            ends[0] = start + range;
+            for (int i = 1; i < threadCount; i++)
+            {
+                starts[i] = ends[i - 1];
+                if (start + range > n || (start + range != n && i + 1 == threadCount))
+                    range = n - starts[i];
+                ends[i] = starts[i] + range;
+            }
+            DateTime startPara = DateTime.Now;
             for (int i = 0; i < threadCount; i++)
             {
-                int tStart = start;
-                if (tStart + range > n || (tStart + range != n && i + 1 == threadCount))
-                    range = n - tStart;
-                int tRange = range;
                 int tI = i;
-                threads[i] = new Thread(new ThreadStart(() => GeneratePrimes(tStart, tRange, tI)));
-                //Console.WriteLine("Thread Started: " + i + " From " + start + " to " + (start + range));
-                start += range;
-                threads[i].Start();
+                //Console.WriteLine("Thread Started: " + i + " From " + starts[tI] + " to " + ends[tI]);
+                threads[tI] = new Thread(new ThreadStart(() => SegmentedSieve(n, starts[tI], ends[tI], tI)));
+                threads[tI].Start();
+                if (tI == 7)
+                    break;
             }
             for (int i = 0; i < threadCount; i++)
                 threads[i].Join();
+            TimeSpan diffPara = DateTime.Now - startPara;
+            BasicParaPrintResults(diffPara.TotalMilliseconds.ToString());
         }
 
-        public static void GeneratePrimes(int start, int range, int thread)
+        public static void SeriesSieve(int n)
         {
-            bool isPrime = true;
-            int end = start + range;
-           
-            for (int i = start; i <= end; i++)
+            int sqrt = (int)Math.Sqrt(n);
+            for(int i = 2; i <= sqrt; i++)
             {
-                for (int j = 2; j <= i; j++)
+                if(primesSeries[i])
                 {
-                    if (i != j && i % j == 0)
+                    for(int j = i * 2; j < n; j += i)
                     {
-                        isPrime = false;
-                        break;
-                    }
-                }
-                if (isPrime)
-                {
-                    //Console.WriteLine("Thread " + thread + " added " + i);
-                    if(parallelPrimes.IndexOf(i) == -1)
-                        parallelPrimes.Add(i);
-                }
-                isPrime = true;
-            }
-        }
-
-        public static void ParallelPrintResults(String time)
-        {
-            int sum = 0;
-            Console.WriteLine("Execution Time: " + time);
-            Console.WriteLine("Total Number of Primes: " + parallelPrimes.Count);
-            foreach (int i in parallelPrimes)
-                sum += i;
-            Console.WriteLine("Sum of All Primes Found: " + sum);
-            Console.WriteLine("Top 10 Primes: ");
-            parallelPrimes.Sort();
-            for (int i = parallelPrimes.Count - 10; i < parallelPrimes.Count; i++)
-            {
-                if (i < 0)
-                    i = 0;
-                Console.Write(parallelPrimes[i] + " ");
-            }
-                
-            Console.Write("\n");
-        }
-
-        public static void SeriesSieveController(int n)
-        {
-            DateTime start = DateTime.Now;
-            bool[] temp = SeriesSieve(n);
-            TimeSpan diff = DateTime.Now - start;
-            SeriesPrintResults(temp, diff.TotalMilliseconds.ToString());
-            //Compare(temp);
-        }
-
-        // Taken from the pseudo code at https://en.wikipedia.org/wiki/Sieve_of_Eratosthenes
-        public static bool[] SeriesSieve(int n)
-        {
-            bool[] list = new bool[n];
-            int i, j, sqrtN = (int)Math.Sqrt((double)n) + 1;
-            for (i = 0; i < n; i++)
-                list[i] = true;
-
-             for(i = 2; i < sqrtN; i++)
-            {
-                if(list[i] == true)
-                {
-                    for(j = i*i; j < n; j += i)
-                    {
-                        list[j] = false;
+                        primesSeries[j] = false;
                     }
                 }
             }
-            return list;
         }
 
-        // Prints the results in the format requested
-        public static void SeriesPrintResults(bool[] list, String time)
+        public static void SegmentedSieve(int n, int min, int max, int thread)
         {
-            int i, primeCount = 0, topPrimeCount = 0;
-            long primeSum = 0;
-            DateTime start = DateTime.Now;
-            ArrayList topPrimes = new ArrayList();
-            for(i = 2; i < list.Length; i++)
+            //Console.WriteLine("Thread: " + thread + "  min: " + min + "  max: " + max);
+            int sqrt = (int)Math.Sqrt(max) + 1;
+            for(int i = 2; i < n && i < sqrt; i++)
             {
-                if(list[i] == true)
+                int temp = i * i;
+
+                if (temp < min)
+                    temp = ((min + i - 1) / i) * i;
+
+                for (int j = temp; j < max; j += i)
                 {
-                    primeCount++;
-                    primeSum += i;
-                    if(topPrimeCount < 10)
-                    {
-                        topPrimeCount++;
-                        topPrimes.Add(i);
-                    }
-                    else
-                    {
-                        topPrimes.RemoveAt(0);
-                        topPrimes.Add(i);
-                    }
+                    primesPara[j] = false;
                 }
             }
-            TimeSpan end = DateTime.Now - start;
-            double tempEnd = Double.Parse(end.TotalMilliseconds.ToString()); 
-            double tempTime = Double.Parse(time) + tempEnd;
-            Console.WriteLine("Execution Time: " + tempTime);
-            Console.WriteLine("Total Number of Primes: " + primeCount);
-            Console.WriteLine("Sum of All Primes Found: " + primeSum);
-            Console.WriteLine("Top 10 Primes: ");
-            for (i = 0; i < 10; i++)
-                Console.Write(topPrimes[i] + " ");
-            Console.Write("\n");
+            Console.WriteLine("Completed Thread : " + thread);
         }
 
-        public static void Compare(bool[] list)
-        {
-            Console.WriteLine("Beginning Compare");
-            int j = 0;
-            for(int i = 2; i < list.Count(); i++)
-            {
-                if(list[i])
-                {
-                    Console.WriteLine(i + " " + parallelPrimes[j]);
-                    j++;
-                    if (j == parallelPrimes.Count)
-                        break;
-                }
-            }
-        }
-        
-        public static void AtkinController(int n)
-        {
-            aThreads = new Thread[threadCount];
-            sieve[2] = true;
-            sieve[3] = true;
-            sieve[5] = true;
-            DateTime start = DateTime.Now;
-            for (int i = 0; i < threadCount; i++)
-            {
-                aThreads[i] = new Thread(new ThreadStart(() => AtkinSieve(n, i)));
-                aThreads[i].Start();
-            }
-            TimeSpan end = DateTime.Now - start;
-            AtkinPrintResults(end.TotalMilliseconds.ToString());
-        }
-
-        //Sieve of Atkin
-        public static void AtkinSieve(int n, int threadNum)
-        {
-            for (int x = 1 + threadNum; x * x < n; x += threadCount)
-            {
-                for (int y = 1; y * y < n; y++)
-                {
-                    int u = (4 * x * x) + (y * y);
-                    if (u <= n && (u % 12 == 1 || u % 12 == 5))
-                    {
-                        lock (sieveLock)
-                        {
-                            sieve[u] = true;
-                        }
-                    }
-
-                    u = (3 * x * x) + (y * y);
-                    if (u <= n && u % 12 == 7)
-                    {
-                        lock (sieveLock)
-                        {
-                            sieve[u] = true;
-                        }
-                    }
-
-                    u = (3 * x * x) - (y * y);
-                    if (x > y && u <= n && u % 12 == 11)
-                    {
-                        lock (sieveLock)
-                        {
-                            sieve[u] = true;
-                        }
-                    }
-                }
-            }
-
-            for (int r = 5 + threadNum; r * r < n; r += threadCount)
-            {
-                lock (sieveLock)
-                {
-                    if (sieve[r])
-                    {
-                        for (int i = r * r; i < n; i += r * r)
-                        {
-                            if (sieve[i] == true)
-                            {
-                                sieve[i] = false;
-                            }
-                        }
-                    }
-                }
-            }
-
-            for (int i = 0; i < threadCount; i++)
-                aThreads[i].Join();
-        }
-        public static void AtkinPrintResults(String time)
+        public static void BasicParaPrintResults(String time)
         {
             int i, primeCount = 0, topPrimeCount = 0;
             long primeSum = 0;
             ArrayList topPrimes = new ArrayList();
-            for (i = 2; i < sieve.Length; i++)
+            for (i = 2; i < primesPara.Length; i++)
             {
-                if (sieve[i] == true)
+                if (primesPara[i] == true)
                 {
                     primeCount++;
                     primeSum += i;
@@ -303,13 +146,48 @@ namespace COP4520Assignment1
             Console.WriteLine("Total Number of Primes: " + primeCount);
             Console.WriteLine("Sum of All Primes Found: " + primeSum);
             Console.WriteLine("Top 10 Primes: ");
-            for (i = topPrimes.Count - 10; i < topPrimes.Count; i++)
-            {
-                if (i < 0)
-                    i = 0;
+            for (i = 0; i < 10; i++)
                 Console.Write(topPrimes[i] + " ");
-            }
             Console.Write("\n");
+        }
+        public static void BasicSeriesPrintResults(String time)
+        {
+            int i, primeCount = 0, topPrimeCount = 0;
+            long primeSum = 0;
+            ArrayList topPrimes = new ArrayList();
+            for (i = 2; i < primesSeries.Length; i++)
+            {
+                if (primesSeries[i] == true)
+                {
+                    primeCount++;
+                    primeSum += i;
+                    if (topPrimeCount < 10)
+                    {
+                        topPrimeCount++;
+                        topPrimes.Add(i);
+                    }
+                    else
+                    {
+                        topPrimes.RemoveAt(0);
+                        topPrimes.Add(i);
+                    }
+                }
+            }
+            Console.WriteLine("Execution Time: " + time);
+            Console.WriteLine("Total Number of Primes: " + primeCount);
+            Console.WriteLine("Sum of All Primes Found: " + primeSum);
+            Console.WriteLine("Top 10 Primes: ");
+            for (i = 0; i < 10; i++)
+                Console.Write(topPrimes[i] + " ");
+            Console.Write("\n");
+        }
+        public static void Compare()
+        {
+            for (int i = 0; i < 100000000; i++)
+            {
+                if (primesPara[i] != primesSeries[i])
+                    Console.WriteLine("ERROR AT: " + i);
+            }
         }
     }
 }
