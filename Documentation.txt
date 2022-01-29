@@ -1,0 +1,7 @@
+After receiving the assignment, a quick search showed that the most efficient algorithm for finding primes would be the Sieve of Eratosthenes, seen here: https://en.wikipedia.org/wiki/Sieve_of_Eratosthenes. Using the pseudocode contained on that site, I created the first version which used only a single thread. In addition, my first version of this contained a method which took information in and printed the output once given the array. 
+
+My first attempt at adding multithreading resulted in complete failure. Given the same dataset, it took several thousand times longer. This was not using the Sieve of Eratosthenes and instead using a different, much worse method.
+
+My second attempt involved trying to use the Sieve of Atkins as seen here: https://en.wikipedia.org/wiki/Sieve_of_Atkin. This however also did not work out as I was unable to find a way to make the calculations required for the Sieve work in a multithreaded environment in a way that was efficient.
+
+Ultimately, I ended up using the Sieve of Eratosthenes but with a multithreaded approach. By splitting the range of numbers into 8 equal pieces, I was able to have 8 different threads work on each of them simultaneously. This resulted in a runtime of approximately 5000ms, but there was still one more optimization I could implement. By pre-marking all even numbers as not prime and skipping them when going through the sieve, I was able to save about half of the time, bringing my final runtime down to approximately 2500ms on my machine.

@@ -1,1 +1,0 @@
-To run, simply navigate to the location of Program.cs and run the command "dotnet run Program.cs"
