@@ -15,11 +15,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Github\\COP4520Assignment1\\COP4520Assignment1\\COP4520Assignment1\\COP4520Assignment1.csproj",
+      "projectUniqueName": "C:\\Github\\COP4520Assignment1\\COP4520Assignment1\\COP4520Assignment1.csproj",
       "projectName": "COP4520Assignment1",
-      "projectPath": "C:\\Github\\COP4520Assignment1\\COP4520Assignment1\\COP4520Assignment1\\COP4520Assignment1.csproj",
+      "projectPath": "C:\\Github\\COP4520Assignment1\\COP4520Assignment1\\COP4520Assignment1.csproj",
       "packagesPath": "C:\\Users\\Silent\\.nuget\\packages\\",
-      "outputPath": "C:\\Github\\COP4520Assignment1\\COP4520Assignment1\\COP4520Assignment1\\obj\\",
+      "outputPath": "C:\\Github\\COP4520Assignment1\\COP4520Assignment1\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
